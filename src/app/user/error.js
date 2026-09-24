@@ -1,4 +1,6 @@
-export const userAlreadyExists = new Error("User already exists");
-export const userNotFound = new Error("User not found");
-export const invalidCredentials = new Error("Invalid credentials");
-export const userAlreadyVerified = new Error("User already verified");
+import { AppError } from "../../common/error.js";
+
+export const userAlreadyExists = new AppError("User already exists", 409);
+export const userNotFound = new AppError("User not found", 404);
+export const invalidCredentials = new AppError("Invalid credentials", 401);
+export const userAlreadyVerified = new AppError("User already verified", 400);

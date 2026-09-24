@@ -20,6 +20,7 @@ import jwt from "jsonwebtoken";
 
 
 export async function registerUser(userData) {
+ 
   const existingUser = await authRepository.findUserByEmail(userData.email);
   if (existingUser) {
     throw userAlreadyExists;
