@@ -9,8 +9,10 @@ import  { logger } from "./common/logger.js";
 import authRouter from "./app/auth/auth.route.js";
 import massegerRouter from "./app/massege/massege.route.js";
 import userRouter from "./app/user/user.route.js";
+import cors from "cors"
 
 const app = express();
+app.use(cors({origin: "http://localhost:4200"}));
 
 app.use(express.json());
 
@@ -19,10 +21,11 @@ app.use("/massege", massegerRouter);
 app.use("/user", userRouter);
 
 app.use((err, req, res, next) => {
+    logger.error(err.message, { stack: err.stack });
+
   if (err.isOperational) {
     return res.status(err.statusCode).json({ error: err.message });
   }
-  logger.error(err.message, { stack: err.stack });
   return res.status(500).json({ error: "something went wrong" });
 });
 app.listen(3000, () => {

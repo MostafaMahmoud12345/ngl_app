@@ -1,8 +1,8 @@
 import * as authRepository from "../repository/auth.repository.js";
 import * as otpRepository from "../repository/otp.repository.js";
 import * as userRepository from "../../user/repository/user.repository.js";
-import * as time from "../../../../utlities/time.js";
-import * as generatOtp from "../../../../utlities/generateOtp.js";
+import * as time from "../../../common/utlities/time.js";
+import * as generatOtp from "../../../common/utlities/generateOtp.js";
 import { otpExpired, invalidVerificationCode } from "../error.js";
 import {
   userAlreadyExists,
@@ -10,9 +10,11 @@ import {
   invalidCredentials,
   userAlreadyVerified,
 } from "../../user/error.js";
-import bcrypt from "bcrypt";
 import { sendEmail } from "../../../common/email.js";
-import jwt from "jsonwebtoken";
+import { generateToken } from "../utilis/token.js";
+import {hashPassword,comparePassword} from "../utilis/hash.js";
+import { OAuth2Client } from "google-auth-library";
+import {verifyGoogleToken} from "../../../common/google.auth.js";
 
 
 
@@ -25,7 +27,7 @@ export async function registerUser(userData) {
   if (existingUser) {
     throw userAlreadyExists;
   }
-  userData.password = await bcrypt.hash(userData.password, 7);
+  userData.password = await hashPassword(userData.password);
   const newUser = await authRepository.createUser(userData);
   const codeOtp = await generatOtp.generateCodeOtp();
   await otpRepository.createOtp({
@@ -69,13 +71,11 @@ export async function login(email, password) {
   if (!user) {
     throw invalidCredentials;
   }
-  const isMatch = await bcrypt.compare(password, user.password);
+  const isMatch = await comparePassword(password, user.password);
   if (!isMatch) {
     throw invalidCredentials;
   }
-  return jwt.sign({ id: user._id, name: user.name }, process.env.JWT_SECRET, {
-    expiresIn: time.toMs(1, "h"),
-  });
+   return generateToken({ id: user._id, name: user.name });
 }
 
 export async function sendOtp(email) {
@@ -96,3 +96,32 @@ export async function sendOtp(email) {
     `<h2>Your verification code is: ${codeOtp}</h2>`,
   );
 }
+export async function resetPassword(email, code, newPassword) {
+  const otp = await otpRepository.findOtpByEmail(email);
+  if (!otp) {
+    throw otpExpired;
+  }
+  if (otp.code !== code) {
+    throw invalidVerificationCode;
+  }
+  const hashedPassword = await hashPassword(newPassword);
+  const updatedUser = await userRepository.UpdateUserByEmail(email, {
+    password: hashedPassword,returnDocument: "after",
+  });
+  await otpRepository.deleteOtpByEmail(email);
+  return updatedUser;
+}
+
+export async function loginWithGoogle(idToken){
+   const payload = await verifyGoogleToken(idToken);
+   let user = await authRepository.findUserByEmail(payload.email);
+   if (!user) {
+     user = await authRepository.createUser({
+       name: payload.name,
+       email: payload.email,
+       provider: "google",
+       isVerified: true,
+     });
+   }
+   return generateToken({ id: user._id, name: user.name });
+ }
