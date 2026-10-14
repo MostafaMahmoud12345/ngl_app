@@ -6,5 +6,4 @@
     Error.captureStackTrace(this, this.constructor); 
   }
 }
-const err=new AppError("not found", 404);
 

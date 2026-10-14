@@ -1,8 +1,8 @@
 import * as authRepository from "../repository/auth.repository.js";
 import * as otpRepository from "../repository/otp.repository.js";
 import * as userRepository from "../../user/repository/user.repository.js";
-import * as time from "../../../common/utlities/time.js";
-import * as generatOtp from "../../../common/utlities/generateOtp.js";
+import * as time from "../../../pkg/utils/time.js";
+import * as generatOtp from "../../../lib/utils/generateOtp.js";
 import { otpExpired, invalidVerificationCode } from "../error.js";
 import {
   userAlreadyExists,
@@ -10,11 +10,12 @@ import {
   invalidCredentials,
   userAlreadyVerified,
 } from "../../user/error.js";
-import { sendEmail } from "../../../common/email.js";
+import { sendEmail } from "../../../lib/mail/email.js";
 import { generateToken } from "../utilis/token.js";
 import {hashPassword,comparePassword} from "../utilis/hash.js";
 import { OAuth2Client } from "google-auth-library";
-import {verifyGoogleToken} from "../../../common/google.auth.js";
+import {verifyGoogleToken} from "../../../lib/utils/google.auth.js";
+import {mailjetProvider} from "../../../lib/mail/init.js";
 
 
 
@@ -35,7 +36,7 @@ export async function registerUser(userData) {
     email: userData.email,
     expiresIn: new Date(Date.now() + time.toMs(5, "m")),
   });
-  await sendEmail(
+  await mailjetProvider.sendMail(
     userData.email,
     " Verification Code",
     `<h2>Your verification code is: ${codeOtp}</h2>`,
@@ -90,7 +91,7 @@ export async function sendOtp(email) {
     email: email,
     expiresIn: new Date(Date.now() + time.toMs(5, "m")),
   });
-  await sendEmail(
+  await mailjetProvider.sendMail(
     email,
     " New Verification Code",
     `<h2>Your verification code is: ${codeOtp}</h2>`,

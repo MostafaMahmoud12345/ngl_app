@@ -1,4 +1,5 @@
 import { Schema, model } from "mongoose";
+import { string } from "zod";
 const userSchema = new Schema(
   {
     name: {
@@ -17,7 +18,7 @@ const userSchema = new Schema(
     },
     password: {
       type: String,
-      required:  function() {
+      required: function () {
         return this.provider === "local";
       },
     },
@@ -42,6 +43,9 @@ const userSchema = new Schema(
       enum: ["male", "female"],
       default: "male",
     },
+    profilePicPath: String,
+    coverImagesPaths: [String],
+    cvFilePath: String,
   },
   {
     timestamps: true,
