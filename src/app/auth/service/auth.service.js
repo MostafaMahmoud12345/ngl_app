@@ -16,6 +16,7 @@ import {hashPassword,comparePassword} from "../utilis/hash.js";
 import { OAuth2Client } from "google-auth-library";
 import {verifyGoogleToken} from "../../../lib/utils/google.auth.js";
 import {mailjetProvider} from "../../../lib/mail/init.js";
+import {cacheProvider} from "../../../lib/cache/init.js"
 
 
 
@@ -31,12 +32,13 @@ export async function registerUser(userData) {
   userData.password = await hashPassword(userData.password);
   const newUser = await authRepository.createUser(userData);
   const codeOtp = await generatOtp.generateCodeOtp();
-  await otpRepository.createOtp({
-    code: codeOtp,
-    email: userData.email,
-    expiresIn: new Date(Date.now() + time.toMs(5, "m")),
-  });
-  await mailjetProvider.sendMail(
+  await cacheProvider.set(`otp:${newUser._id.toString()}`,codeOtp,time.toSeconds(5,"m"))
+  //  otpRepository.createOtp({
+  //   code: codeOtp,
+  //   email: userData.email,
+  //   expiresIn: new Date(Date.now() + time.toMs(5, "m")),
+  // });
+  await sendEmail(
     userData.email,
     " Verification Code",
     `<h2>Your verification code is: ${codeOtp}</h2>`,
@@ -52,18 +54,18 @@ export async function verifyAccount(email, code) {
   if (user.isVerified) {
     throw userAlreadyVerified;
   }
-  const otp = await otpRepository.findOtpByEmail(email);
+  const otp = await cacheProvider.get(`otp:${user._id.toString()}`);
   if (!otp) {
     throw otpExpired;
   }
-  if (otp.code !== code) {
+  if (otp !== code) {
     throw invalidVerificationCode;
   }
 
   const updatedUser = await userRepository.UpdateUserByEmail(email, {
     isVerified: true,
   });
-  await otpRepository.deleteOtpByEmail(email);
+  await cacheProvider.del(`otp:${user._id.toString()}`)
   return updatedUser;
 }
 
@@ -86,30 +88,30 @@ export async function sendOtp(email) {
   }
   await otpRepository.deleteOtpByEmail(email);
   const codeOtp = await generatOtp.generateCodeOtp();
-  await otpRepository.createOtp({
-    code: codeOtp,
-    email: email,
-    expiresIn: new Date(Date.now() + time.toMs(5, "m")),
-  });
-  await mailjetProvider.sendMail(
+  await cacheProvider.set(`otp:${user._id.toString()}`,codeOtp,time.toSeconds(5,"m"))
+  await sendEmail(
     email,
     " New Verification Code",
     `<h2>Your verification code is: ${codeOtp}</h2>`,
   );
 }
 export async function resetPassword(email, code, newPassword) {
-  const otp = await otpRepository.findOtpByEmail(email);
+ const user = await authRepository.findUserByEmail(email);
+  if (!user) {
+    throw userNotFound;
+  }
+  const otp = await cacheProvider.get(`otp:${user._id.toString()}`);
   if (!otp) {
     throw otpExpired;
   }
-  if (otp.code !== code) {
+  if (otp !== code) {
     throw invalidVerificationCode;
   }
   const hashedPassword = await hashPassword(newPassword);
   const updatedUser = await userRepository.UpdateUserByEmail(email, {
     password: hashedPassword,returnDocument: "after",
   });
-  await otpRepository.deleteOtpByEmail(email);
+  await cacheProvider.del(`otp:${user._id.toString()}`)
   return updatedUser;
 }
 
