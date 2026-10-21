@@ -11,3 +11,7 @@ export async function getAllMessages(userId){
   return  Message.find({receiver:userId},{},{populate:{path:"sender",select:'name'}})
 
 }
+
+export async function findMessageById(messageId) {
+  return await Message.findById(messageId);
+}

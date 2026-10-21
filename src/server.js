@@ -8,8 +8,8 @@ import "./lib/db/mongoose.js";
 const app = createApp();
 const server = http.createServer(app);
 
-app.listen(3003, () => {
-  logger.info(`server is running on port 3003`);
+app.listen(3000, () => {
+  logger.info(`server is running on port 3000`);
 });
 
 async function shutdown() {

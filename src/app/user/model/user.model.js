@@ -1,5 +1,5 @@
 import { Schema, model } from "mongoose";
-import { string } from "zod";
+
 const userSchema = new Schema(
   {
     name: {
@@ -32,6 +32,10 @@ const userSchema = new Schema(
       default: false,
     },
     isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    twoFactorEnabled: {
       type: Boolean,
       default: false,
     },

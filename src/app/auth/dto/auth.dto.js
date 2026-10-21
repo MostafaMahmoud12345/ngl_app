@@ -25,3 +25,12 @@ export const resetPasswordDto = z.object({
   code: z.string().length(4).trim(),
   newPassword: z.string().min(5).max(20).trim(),
 });
+
+export const verify2faDto = z.object({
+  code: z.string().length(4).trim(),
+});
+
+export const loginConfirmDto = z.object({
+  email: z.string().email().lowercase().trim(),
+  code: z.string().length(4).trim(),
+});
